@@ -28,7 +28,7 @@ export default function ResetPassword(){
    setMessage('如该邮箱已注册，你将收到密码重设邮件。请打开最新邮件中的链接，留意垃圾邮件文件夹。');
  }catch(error){setMessage(error instanceof Error?error.message:'发送失败。')}finally{setBusy(false)}}
  async function savePassword(e:React.FormEvent){e.preventDefault();if(busy||!client.current)return;
-   if(password.length<12){setMessage('请设置至少12位的新密码。');return}if(password!==confirm){setMessage('两次输入的密码不一致。');return}
+   if(password.length<6){setMessage('请设置至少6位的新密码。');return}if(password!==confirm){setMessage('两次输入的密码不一致。');return}
    setBusy(true);setMessage('');try{
    const {error}=await client.current.auth.updateUser({password});
    if(error)throw Error('未能保存密码。请确认密码符合项目要求；若链接已过期，请重新发送邮件。');
@@ -40,7 +40,7 @@ export default function ResetPassword(){
 `}</style><section className="reset-card"><h1>阿雪的工作台 · 设置密码</h1>
 {phase==='loading'&&<p role="status">正在验证邮件链接…</p>}
 {phase==='request'&&<><p>填写你的工作台登录邮箱，收取设置新密码的邮件。</p><form onSubmit={sendEmail}><label>工作台邮箱<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} maxLength={254}/></label><button disabled={busy}>{busy?'正在发送…':'发送密码重设邮件'}</button></form></>}
-{phase==='password'&&<><p className="reset-small">已验证邮箱：{email}</p><form onSubmit={savePassword}><label>新密码<input type="password" autoComplete="new-password" required minLength={12} maxLength={256} value={password} onChange={e=>setPassword(e.target.value)}/></label><label>再次输入新密码<input type="password" autoComplete="new-password" required minLength={12} maxLength={256} value={confirm} onChange={e=>setConfirm(e.target.value)}/></label><button disabled={busy}>{busy?'正在保存…':'保存新密码'}</button></form></>}
+{phase==='password'&&<><p className="reset-small">已验证邮箱：{email}</p><form onSubmit={savePassword}><label>新密码<input type="password" autoComplete="new-password" required minLength={6} maxLength={256} value={password} onChange={e=>setPassword(e.target.value)}/></label><label>再次输入新密码<input type="password" autoComplete="new-password" required minLength={6} maxLength={256} value={confirm} onChange={e=>setConfirm(e.target.value)}/></label><button disabled={busy}>{busy?'正在保存…':'保存新密码'}</button></form></>}
 {phase==='error'&&<p><a href="/reset-password">重新发送密码重设邮件</a></p>}
 <p role="status" aria-live="polite" className={'reset-message '+(phase==='complete'?'reset-success':'')}>{message}</p>
 <p><a href="/login">返回登录</a></p><p className="reset-small">密码只需在此页面填写，不要发送到聊天中。这里设置的是工作台账号密码。</p>
