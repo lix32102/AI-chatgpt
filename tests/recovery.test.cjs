@@ -1,0 +1,6 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{stripTypeScriptTypes}=require('node:module');
+const source=stripTypeScriptTypes(fs.readFileSync(path.join(__dirname,'../lib/recovery.ts'),'utf8')).replace('export ','');
+const recoveryTokens=vm.runInNewContext(source+';recoveryTokens',{URLSearchParams});
+test('只接受完整的recovery链接，不把普通登录或分享令牌当作密码恢复',()=>{for(const value of ['','#view=token','#access_token=test&refresh_token=test&type=signup','#access_token=test&type=recovery','#refresh_token=test&type=recovery'])assert.equal(recoveryTokens(value),null);assert.equal(recoveryTokens('#access_token=test&refresh_token=test&type=recovery').access_token,'test')});
+test('拒绝过长的恢复令牌',()=>{assert.equal(recoveryTokens('#access_token='+'a'.repeat(20001)+'&refresh_token=test&type=recovery'),null)});
+test('密码页面不持久化令牌，先向Supabase核验身份和管理员权限再开放表单',()=>{const s=fs.readFileSync(path.join(__dirname,'../app/reset-password/page.tsx'),'utf8');assert(s.includes('persistSession:false'));assert(s.includes('history.replaceState'));assert(s.includes('sdk.auth.getUser()'));assert(s.includes("sdk.rpc('axue_wb_read'"));assert(s.indexOf("sdk.rpc('axue_wb_read'")<s.indexOf("setPhase('password')"));assert(s.includes('auth.updateUser({password})'));assert(!s.includes('localStorage'))});
