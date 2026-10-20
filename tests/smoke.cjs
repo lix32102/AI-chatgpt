@@ -1,0 +1,13 @@
+const {spawn}=require('node:child_process'),assert=require('node:assert/strict'),path=require('node:path');
+const root=path.resolve(__dirname,'..'),port=41000+Math.floor(Math.random()*1000);
+const child=spawn(process.execPath,[path.join(root,'node_modules/next/dist/bin/next'),'start','--hostname','127.0.0.1','--port',String(port)],{cwd:root,stdio:['ignore','pipe','pipe'],env:{...process.env,NEXT_TELEMETRY_DISABLED:'1'}});
+let output='';child.stdout.on('data',c=>output+=c);child.stderr.on('data',c=>output+=c);
+const origin='http://127.0.0.1:'+port;
+(async()=>{try{await new Promise((resolve,reject)=>{const timer=setInterval(()=>{if(output.includes('Ready in')){clearInterval(timer);clearTimeout(timeout);resolve()}},100);const timeout=setTimeout(()=>{clearInterval(timer);reject(Error('Production server startup timed out'))},25000);child.on('error',reject);child.on('exit',code=>{if(code)reject(Error('Production server exited: '+output))})});
+let response=await fetch(origin+'/',{redirect:'manual'});assert([307,308].includes(response.status));assert.equal(response.headers.get('location'),'/workbench');
+response=await fetch(origin+'/login');assert.equal(response.status,200);const login=await response.text();assert(login.includes('阿雪的工作台'));assert(login.includes('type="password"'));assert.equal(response.headers.get('cache-control'),'no-store');
+response=await fetch(origin+'/workbench');assert.equal(response.status,200);const html=await response.text();assert(html.includes('等风来，不如追风~'));assert(html.includes("fetch('/api/state'"));assert(response.headers.get('content-security-policy').includes("connect-src 'self'"));
+response=await fetch(origin+'/api/state');assert.equal(response.status,503);assert.equal((await response.json()).state,undefined);
+response=await fetch(origin+'/api/auth/login',{method:'POST',headers:{'content-type':'application/json',origin:'https://untrusted.test'},body:'{}'});assert.equal(response.status,403);
+console.log('PASS: built production server starts, home redirects, login and workbench serve, absent cloud config discloses no tasks, cross-origin login denied');
+}finally{child.kill()}})().catch(e=>{console.error(e.message);process.exitCode=1});
